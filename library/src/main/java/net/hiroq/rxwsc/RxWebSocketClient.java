@@ -137,7 +137,7 @@ public class RxWebSocketClient {
          * It will return valid data if EventType is MESSAGE_BINARY.
          * When the other EventTypes, it will return null.
          *
-         * @return
+         * @return string value. Return null if no received data,
          */
         public byte[] getBytes() {
             return mBytes;
@@ -148,7 +148,7 @@ public class RxWebSocketClient {
          * It will return valid data if EventType is MESSAGE_STRING.
          * When the other EventTypes, it will return null.
          *
-         * @return
+         * @return string value. Return null if no received data,
          */
         public String getString() {
             return mString;

@@ -23,7 +23,6 @@ mSubscription = mSocketClient.connect(Uri.parse("ws://hogehoge"))
                 Log.d(TAG, "== onNext ==");
                 switch (event.getType()) {
                     case CONNECT:
-                        mRetryCount = 0;
                         Log.d(TAG, "  CONNECT");
                         mSocketClient.send("test");
                         break;

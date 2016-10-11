@@ -37,20 +37,19 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.text.TextUtils;
 import android.util.Base64;
+import android.util.Pair;
 
 import org.apache.http.Header;
-import org.apache.http.HttpException;
 import org.apache.http.HttpStatus;
-import org.apache.http.NameValuePair;
 import org.apache.http.StatusLine;
-import org.apache.http.client.HttpResponseException;
 import org.apache.http.message.BasicLineParser;
-import org.apache.http.message.BasicNameValuePair;
 
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
+import java.net.ConnectException;
 import java.net.MalformedURLException;
+import java.net.ProtocolException;
 import java.net.Socket;
 import java.security.KeyManagementException;
 import java.security.MessageDigest;
@@ -62,8 +61,9 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 
+import rx.Emitter;
 import rx.Observable;
-import rx.Subscriber;
+import rx.functions.Action1;
 
 public class RxWebSocketClient {
     /**
@@ -183,7 +183,7 @@ public class RxWebSocketClient {
     /**
      * Additional HttpHeader
      */
-    private List<BasicNameValuePair> mExtraHeaders;
+    private List<Pair<String, String>> mExtraHeaders;
 
     /**
      * WebSocket Message Parser
@@ -191,9 +191,9 @@ public class RxWebSocketClient {
     private HybiParser mParser;
 
     /**
-     * RxJava Subscriber
+     * RxJava Emmiter
      */
-    private Subscriber<? super Event> mSubscriber;
+    private Emitter<Event> mEmitter;
 
 
     /**
@@ -203,7 +203,7 @@ public class RxWebSocketClient {
      * @param extraHeaders
      * @return
      */
-    public Observable<Event> connect(Uri uri, List<BasicNameValuePair> extraHeaders) {
+    public Observable<Event> connect(Uri uri, List<Pair<String, String>> extraHeaders) {
         this.mUri = uri;
         this.mExtraHeaders = extraHeaders;
         this.mParser = new HybiParser(this);
@@ -212,18 +212,17 @@ public class RxWebSocketClient {
         this.mHandlerThread.start();
         this.mHandler = new Handler(mHandlerThread.getLooper());
 
-        return Observable.create(new Observable.OnSubscribe<Event>() {
+        return Observable.fromEmitter(new Action1<Emitter<Event>>() {
             @Override
-            public void call(Subscriber<? super Event> subscriber) {
+            public void call(Emitter<Event> eventEmitter) {
                 try {
-                    mSubscriber = subscriber;
-
+                    mEmitter = eventEmitter;
                     String secret = createSecret();
                     String scheme = mUri.getScheme();
 
                     // uri have invalid scheme throw MalformedURLException
                     if (scheme == null || !(scheme.equals("ws") || scheme.equals("wss"))) {
-                        subscriber.onError(new MalformedURLException("Url scheme has to be specified as \"ws\" or \"wss\"."));
+                        new MalformedURLException("Url scheme has to be specified as \"ws\" or \"wss\".");
                     }
 
                     int port = (mUri.getPort() != -1) ? mUri.getPort() : (scheme.equals("wss") ? 443 : 80);
@@ -247,8 +246,8 @@ public class RxWebSocketClient {
                     out.print("Sec-WebSocket-Key: " + secret + "\r\n");
                     out.print("Sec-WebSocket-Version: 13\r\n");
                     if (mExtraHeaders != null) {
-                        for (NameValuePair pair : mExtraHeaders) {
-                            out.print(String.format("%s: %s\r\n", pair.getName(), pair.getValue()));
+                        for (Pair<String, String> pair : mExtraHeaders) {
+                            out.print(String.format("%s: %s\r\n", pair.first, pair.second));
                         }
                     }
                     out.print("\r\n");
@@ -259,9 +258,9 @@ public class RxWebSocketClient {
                     // Read HTTP response status line.
                     StatusLine statusLine = parseStatusLine(readLine(stream));
                     if (statusLine == null) {
-                        throw new HttpException("Received no reply from server.");
+                        throw new ConnectException("Received no reply from server.");
                     } else if (statusLine.getStatusCode() != HttpStatus.SC_SWITCHING_PROTOCOLS) {
-                        throw new HttpResponseException(statusLine.getStatusCode(), statusLine.getReasonPhrase());
+                        throw new ProtocolException("Server sent invalid response code " + statusLine.getStatusCode() + ". WebSocket server must return " + HttpStatus.SC_SWITCHING_PROTOCOLS);
                     }
 
                     // Read HTTP response headers.
@@ -275,7 +274,7 @@ public class RxWebSocketClient {
                             String actual = header.getValue().trim();
 
                             if (!expected.equals(actual)) {
-                                throw new HttpException("Bad Sec-WebSocket-Accept header value.");
+                                throw new ProtocolException("Bad Sec-WebSocket-Accept header value.");
                             }
 
                             validated = true;
@@ -283,19 +282,18 @@ public class RxWebSocketClient {
                     }
 
                     if (!validated) {
-                        throw new HttpException("No Sec-WebSocket-Accept header.");
+                        throw new ProtocolException("No Sec-WebSocket-Accept header.");
                     }
 
-                    subscriber.onStart();
-                    subscriber.onNext(new Event(EventType.CONNECT));
+                    emitterOnNext(new Event(EventType.CONNECT));
 
                     // Now decode websocket frames.
                     mParser.start(stream);
                 } catch (Exception e) {
-                    mSubscriber.onError(e);
+                    emitterOnError(e);
                 }
             }
-        });
+        }, Emitter.BackpressureMode.BUFFER);
     }
 
     /**
@@ -339,7 +337,7 @@ public class RxWebSocketClient {
                         mHandlerThread.join();
                         mSocket.close();
                     } catch (Exception e) {
-                        subscriberOnError(e);
+                        emitterOnError(e);
                     }
                 }
             });
@@ -466,7 +464,7 @@ public class RxWebSocketClient {
                         outputStream.flush();
                     }
                 } catch (IOException e) {
-                    subscriberOnError(e);
+                    emitterOnError(e);
                 }
             }
         });
@@ -475,12 +473,10 @@ public class RxWebSocketClient {
     /**
      * Emit onNext to Streaming
      */
-    void subscriberOnNext(Event event) {
-        if (mSubscriber != null && mSubscriber.isUnsubscribed()) {
-            mSubscriber = null;
-            return;
+    void emitterOnNext(Event event) {
+        if (mEmitter != null) {
+            mEmitter.onNext(event);
         }
-        mSubscriber.onNext(event);
     }
 
     /**
@@ -488,25 +484,18 @@ public class RxWebSocketClient {
      *
      * @param e
      */
-    void subscriberOnError(Throwable e) {
-        if (mSubscriber != null && mSubscriber.isUnsubscribed()) {
-            mSubscriber = null;
-            return;
+    void emitterOnError(Throwable e) {
+        if (mEmitter != null) {
+            mEmitter.onError(e);
         }
-        mSubscriber.onError(e);
     }
 
     /**
      * Emit onComplete to Streaming
      */
-    void subscriberOnCompleted() {
-        if (mSubscriber != null && mSubscriber.isUnsubscribed()) {
-            mSubscriber = null;
-            return;
+    void emitterOnCompleted() {
+        if (mEmitter != null) {
+            mEmitter.onCompleted();
         }
-        if (mSubscriber != null) {
-            mSubscriber.onCompleted();
-        }
-        mSubscriber = null;
     }
 }

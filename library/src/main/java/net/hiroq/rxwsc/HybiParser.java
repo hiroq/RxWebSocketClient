@@ -141,11 +141,11 @@ public class HybiParser {
             }
         } catch (SocketException e) {
             // closed by HybiParser#close
-            mClient.subscriberOnNext(new RxWebSocketClient.Event(RxWebSocketClient.EventType.DISCONNECT));
-            mClient.subscriberOnCompleted();
+            mClient.emitterOnNext(new RxWebSocketClient.Event(RxWebSocketClient.EventType.DISCONNECT));
+            mClient.emitterOnCompleted();
         } catch (EOFException e) {
             // Might be disconnected by server or network problems.
-            mClient.subscriberOnError(new ConnectException("Disconnected by Host or network problems."));
+            mClient.emitterOnError(new ConnectException("Disconnected by Host or network problems."));
         }
     }
 
@@ -284,16 +284,16 @@ public class HybiParser {
             if (mFinal) {
                 byte[] message = mBuffer.toByteArray();
                 if (mMode == MODE_TEXT) {
-                    mClient.subscriberOnNext(new RxWebSocketClient.Event(RxWebSocketClient.EventType.MESSAGE_STRING, encode(message)));
+                    mClient.emitterOnNext(new RxWebSocketClient.Event(RxWebSocketClient.EventType.MESSAGE_STRING, encode(message)));
                 } else {
-                    mClient.subscriberOnNext(new RxWebSocketClient.Event(RxWebSocketClient.EventType.MESSAGE_BINARY, message));
+                    mClient.emitterOnNext(new RxWebSocketClient.Event(RxWebSocketClient.EventType.MESSAGE_BINARY, message));
                 }
                 reset();
             }
 
         } else if (opcode == OP_TEXT) {
             if (mFinal) {
-                mClient.subscriberOnNext(new RxWebSocketClient.Event(RxWebSocketClient.EventType.MESSAGE_STRING, encode(payload)));
+                mClient.emitterOnNext(new RxWebSocketClient.Event(RxWebSocketClient.EventType.MESSAGE_STRING, encode(payload)));
             } else {
                 mMode = MODE_TEXT;
                 mBuffer.write(payload);
@@ -301,7 +301,7 @@ public class HybiParser {
 
         } else if (opcode == OP_BINARY) {
             if (mFinal) {
-                mClient.subscriberOnNext(new RxWebSocketClient.Event(RxWebSocketClient.EventType.MESSAGE_BINARY, payload));
+                mClient.emitterOnNext(new RxWebSocketClient.Event(RxWebSocketClient.EventType.MESSAGE_BINARY, payload));
             } else {
                 mMode = MODE_BINARY;
                 mBuffer.write(payload);
@@ -310,8 +310,8 @@ public class HybiParser {
         } else if (opcode == OP_CLOSE) {
             int code = (payload.length >= 2) ? 256 * payload[0] + payload[1] : 0;
             String reason = (payload.length > 2) ? encode(slice(payload, 2)) : null;
-            mClient.subscriberOnNext(new RxWebSocketClient.Event(RxWebSocketClient.EventType.DISCONNECT));
-            mClient.subscriberOnCompleted();
+            mClient.emitterOnNext(new RxWebSocketClient.Event(RxWebSocketClient.EventType.DISCONNECT));
+            mClient.emitterOnCompleted();
         } else if (opcode == OP_PING) {
             if (payload.length > 125) {
                 throw new ProtocolError("Ping payload too large");

@@ -4,7 +4,7 @@ Simple RxJava WebSocketClient
 # Install
 ```groovy
 dependencies {
-    compile 'net.hiroq:rxwsc:0.1.0'
+    compile 'net.hiroq:rxwsc:0.1.1'
 }
 ```
 
@@ -14,7 +14,6 @@ If you use lambda, the code will be simpler!
 ```java
 mSocketClient = new RxWebSocketClient();
 mSubscription = mSocketClient.connect(Uri.parse("ws://hogehoge"))
-        .onBackpressureBuffer()
         .subscribeOn(Schedulers.newThread())
         .observeOn(AndroidSchedulers.mainThread())
         .subscribe(new Action1<RxWebSocketClient.Event>() {
@@ -56,7 +55,6 @@ If you want to reconnect automatically, use retryWhen like below:
 ```java
 mSocketClient = new RxWebSocketClient();
 mSubscription = mSocketClient.connect(Uri.parse("ws://hogehoge"))
-        .onBackpressureBuffer()
         .retryWhen(new Func1<Observable<? extends Throwable>, Observable<?>>() {
             @Override
             public Observable<?> call(final Observable<? extends Throwable> observable) {

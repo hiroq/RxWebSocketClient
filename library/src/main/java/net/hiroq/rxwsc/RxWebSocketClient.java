@@ -195,6 +195,10 @@ public class RxWebSocketClient {
      */
     private Emitter<Event> mEmitter;
 
+    /**
+     * Object for mutex
+     */
+    private Object mSendLock = new Object();
 
     /**
      * Connection Flag
@@ -462,7 +466,7 @@ public class RxWebSocketClient {
             @Override
             public void run() {
                 try {
-                    synchronized (Thread.currentThread()) {
+                    synchronized (mSendLock) {
                         if (mSocket == null) {
                             throw new ConnectException("Socket not connected");
                         }

@@ -197,6 +197,11 @@ public class RxWebSocketClient {
 
 
     /**
+     * Connection Flag
+     */
+    private boolean mIsConnected = false;
+
+    /**
      * Connect to WebSocketServer with additional Header.
      *
      * @param uri
@@ -285,6 +290,7 @@ public class RxWebSocketClient {
                         throw new ProtocolException("No Sec-WebSocket-Accept header.");
                     }
 
+                    mIsConnected = true;
                     emitterOnNext(new Event(EventType.CONNECT));
 
                     // Now decode websocket frames.
@@ -328,6 +334,7 @@ public class RxWebSocketClient {
      * Disconnect WebSocket, emit onNext with EventType.DISCONNECT and finally onComplete to Streaming
      */
     public void diconnect() {
+        mIsConnected = false;
         if (mSocket != null) {
             mHandler.post(new Runnable() {
                 @Override
@@ -457,7 +464,7 @@ public class RxWebSocketClient {
                 try {
                     synchronized (Thread.currentThread()) {
                         if (mSocket == null) {
-                            throw new IllegalStateException("Socket not connected");
+                            throw new ConnectException("Socket not connected");
                         }
                         OutputStream outputStream = mSocket.getOutputStream();
                         outputStream.write(frame);
@@ -485,6 +492,7 @@ public class RxWebSocketClient {
      * @param e
      */
     void emitterOnError(Throwable e) {
+        mIsConnected = false;
         if (mEmitter != null) {
             mEmitter.onError(e);
         }
@@ -494,8 +502,18 @@ public class RxWebSocketClient {
      * Emit onComplete to Streaming
      */
     void emitterOnCompleted() {
+        mIsConnected = true;
         if (mEmitter != null) {
             mEmitter.onCompleted();
         }
+    }
+
+    /**
+     * get connection status
+     *
+     * @return
+     */
+    public boolean isConnected() {
+        return mIsConnected;
     }
 }

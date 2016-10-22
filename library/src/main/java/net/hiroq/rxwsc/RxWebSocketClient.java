@@ -506,7 +506,7 @@ public class RxWebSocketClient {
      * Emit onComplete to Streaming
      */
     void emitterOnCompleted() {
-        mIsConnected = true;
+        mIsConnected = false;
         if (mEmitter != null) {
             mEmitter.onCompleted();
         }

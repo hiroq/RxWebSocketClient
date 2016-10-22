@@ -337,8 +337,10 @@ public class RxWebSocketClient {
     /**
      * Disconnect WebSocket, emit onNext with EventType.DISCONNECT and finally onComplete to Streaming
      */
-    public void diconnect() {
+    public void disconnect() {
         mIsConnected = false;
+        emitterOnNext(new Event(EventType.DISCONNECT));
+        emitterOnCompleted();
         if (mSocket != null) {
             mHandler.post(new Runnable() {
                 @Override
@@ -348,7 +350,7 @@ public class RxWebSocketClient {
                         mHandlerThread.join();
                         mSocket.close();
                     } catch (Exception e) {
-                        emitterOnError(e);
+                        // At this time, ignore any exceptions
                     }
                 }
             });

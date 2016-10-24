@@ -78,9 +78,18 @@ mSubscription = mSocketClient.connect(Uri.parse("ws://hogehoge"))
         .observeOn(AndroidSchedulers.mainThread())
 ```
 
+# Sample
+You can run sample project with sample WebSocket server which is implemented in Javascript and run on Node.js.
+
+```
+cd sample-server
+node app.js
+```
+
+Then run "sample".
+
 
 # TODO
-* make sample code
 * make test
 
 

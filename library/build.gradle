@@ -40,7 +40,7 @@ publish {
     userOrg = 'hiroq'
     groupId = 'net.hiroq'
     artifactId = 'rxwsc'
-    publishVersion = '0.1.4'
+    publishVersion = '0.1.5'
     desc = 'Simple RxJava WebSocketClient'
     website = 'https://github.com/hiroq/RxWebSocketClient'
 }

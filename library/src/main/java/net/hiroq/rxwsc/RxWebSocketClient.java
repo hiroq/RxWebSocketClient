@@ -63,6 +63,7 @@ import javax.net.ssl.TrustManager;
 
 import rx.Emitter;
 import rx.Observable;
+import rx.functions.Action0;
 import rx.functions.Action1;
 
 public class RxWebSocketClient {
@@ -207,12 +208,18 @@ public class RxWebSocketClient {
 
     /**
      * Connect to WebSocketServer with additional Header.
+     * When unsubscribe is called, the observable will disconnect automatically.
+     * <p>
+     * Caution: This method run on same thread of caller. So if you want to run on NOT UI THREAD,
+     * you have to use subscribeOn to specify thread model.
      *
      * @param uri
      * @param extraHeaders
      * @return
      */
     public Observable<Event> connect(Uri uri, List<Pair<String, String>> extraHeaders) {
+        this.disconnect(false);
+
         this.mUri = uri;
         this.mExtraHeaders = extraHeaders;
         this.mParser = new HybiParser(this);
@@ -303,7 +310,12 @@ public class RxWebSocketClient {
                     emitterOnError(e);
                 }
             }
-        }, Emitter.BackpressureMode.BUFFER);
+        }, Emitter.BackpressureMode.BUFFER).doOnUnsubscribe(new Action0() {
+            @Override
+            public void call() {
+                RxWebSocketClient.this.disconnect(false);
+            }
+        });
     }
 
     /**
@@ -338,17 +350,27 @@ public class RxWebSocketClient {
      * Disconnect WebSocket, emit onNext with EventType.DISCONNECT and finally onComplete to Streaming
      */
     public void disconnect() {
+        disconnect(true);
+    }
+
+    private void disconnect(boolean emitt) {
+        if (!mIsConnected) {
+            return;
+        }
+
         mIsConnected = false;
-        emitterOnNext(new Event(EventType.DISCONNECT));
-        emitterOnCompleted();
+        if (emitt) {
+            emitterOnNext(new Event(EventType.DISCONNECT));
+            emitterOnCompleted();
+        }
         if (mSocket != null) {
             mHandler.post(new Runnable() {
                 @Override
                 public void run() {
                     try {
                         mParser.stop();
-                        mHandlerThread.join();
                         mSocket.close();
+                        mHandlerThread.join();
                     } catch (Exception e) {
                         // At this time, ignore any exceptions
                     }

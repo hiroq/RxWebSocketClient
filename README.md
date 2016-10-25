@@ -12,42 +12,54 @@ dependencies {
 If you use lambda, the code will be simpler!
 
 ```java
-mSocketClient = new RxWebSocketClient();
-mSubscription = mSocketClient.connect(Uri.parse("ws://hogehoge"))
-        .subscribeOn(Schedulers.newThread())
-        .observeOn(AndroidSchedulers.mainThread())
-        .subscribe(new Action1<RxWebSocketClient.Event>() {
-            @Override
-            public void call(RxWebSocketClient.Event event) {
-                Log.d(TAG, "== onNext ==");
-                switch (event.getType()) {
-                    case CONNECT:
-                        Log.d(TAG, "  CONNECT");
-                        mSocketClient.send("test");
-                        break;
-                    case DISCONNECT:
-                        Log.d(TAG, "  DISCONNECT");
-                        break;
-                    case MESSAGE_BINARY:
-                        Log.d(TAG, "  MESSAGE_BINARY : bytes = " + event.getBytes().length);
-                        break;
-                    case MESSAGE_STRING:
-                        Log.d(TAG, "  MESSAGE_STRING = " + event.getString());
-                        break;
-                }
-            }
-        }, new Action1<Throwable>() {
-            @Override
-            public void call(Throwable throwable) {
-                Log.d(TAG, "== onError ==");
-                throwable.printStackTrace();
-            }
-        }, new Action0() {
-            @Override
-            public void call() {
-                Log.d(TAG, "== onComplete ==");
-            }
-        });
+onResume(){
+    mSocketClient = new RxWebSocketClient();
+    mSubscription = mSocketClient.connect(Uri.parse("ws://hogehoge"))
+            .subscribeOn(Schedulers.newThread())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe(new Action1<RxWebSocketClient.Event>() {
+                @Override
+                public void call(RxWebSocketClient.Event event) {
+                    Log.d(TAG, "== onNext ==");
+                    switch (event.getType()) {
+                        case CONNECT:
+                            Log.d(TAG, "  CONNECT");
+                            mSocketClient.send("test");
+                            break;
+                        case DISCONNECT:
+                            Log.d(TAG, "  DISCONNECT");
+                            break;
+                        case MESSAGE_BINARY:
+                            Log.d(TAG, "  MESSAGE_BINARY : bytes = " + event.getBytes().length);
+                            break;
+                        case MESSAGE_STRING:
+                            Log.d(TAG, "  MESSAGE_STRING = " + event.getString());
+                            break;
+                    }
+                }
+            }, new Action1<Throwable>() {
+                @Override
+                public void call(Throwable throwable) {
+                    Log.d(TAG, "== onError ==");
+                    throwable.printStackTrace();
+                }
+            }, new Action0() {
+                @Override
+                public void call() {
+                    Log.d(TAG, "== onComplete ==");
+                }
+            });
+            }
+}
+
+onPause(){
+    // After this call, connection will be disconnected.
+    mSubscription.unsubscribe();
+}
+
+onClick(){
+    mSocketClient.send("This is test message");
+}
 ```
 
 
@@ -85,6 +97,8 @@ You can run sample project with sample WebSocket server which is implemented in 
 cd sample-server
 node app.js
 ```
+Then run sample android app.
+
 
 Then run "sample".
 

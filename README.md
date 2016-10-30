@@ -1,6 +1,9 @@
 # RxWebSocketClient
 Simple RxJava WebSocketClient
 
+# DEMO Video
+[![DEMO VIDEO](http://img.youtube.com/vi/831TLryJnR8/0.jpg)](http://www.youtube.com/watch?v=831TLryJnR8)
+
 # Install
 ```groovy
 dependencies {
@@ -97,10 +100,10 @@ You can run sample project with sample WebSocket server which is implemented in 
 cd sample-server
 node app.js
 ```
-Then run sample android app.
 
+Then run sample android app on an emulator.
 
-Then run "sample".
+> If you want run the sample on a real devide, you have to change Connetion URL.
 
 
 # TODO

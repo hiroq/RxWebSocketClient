@@ -474,7 +474,7 @@ public class RxWebSocketClient {
      * @throws NoSuchAlgorithmException
      * @throws KeyManagementException
      */
-    private SSLSocketFactory getSSLSocketFactory() throws NoSuchAlgorithmException, KeyManagementException {
+    protected SSLSocketFactory getSSLSocketFactory() throws NoSuchAlgorithmException, KeyManagementException {
         SSLContext context = SSLContext.getInstance("TLS");
         context.init(null, sTrustManagers, null);
         return context.getSocketFactory();

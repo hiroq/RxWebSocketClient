@@ -43,6 +43,8 @@ import java.net.SocketException;
 import java.util.Arrays;
 import java.util.List;
 
+import javax.net.ssl.SSLException;
+
 public class HybiParser {
     private RxWebSocketClient mClient;
 
@@ -139,6 +141,9 @@ public class HybiParser {
                         break;
                 }
             }
+        } catch (SSLException e) {
+            // Might be disconnected by server or network problems.
+            mClient.emitterOnError(new ConnectException("Disconnected by Host or network problems."));
         } catch (SocketException e) {
             // closed by HybiParser#close
             mClient.emitterOnNext(new RxWebSocketClient.Event(RxWebSocketClient.EventType.DISCONNECT));

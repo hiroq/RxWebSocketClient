@@ -7,7 +7,7 @@ Simple RxJava WebSocketClient
 # Install
 ```groovy
 dependencies {
-    compile 'net.hiroq:rxwsc:0.1.6'
+    compile 'net.hiroq:rxwsc:0.1.7'
 }
 ```
 

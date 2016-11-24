@@ -61,10 +61,9 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 
-import rx.Emitter;
 import rx.Observable;
+import rx.Subscriber;
 import rx.functions.Action0;
-import rx.functions.Action1;
 
 public class RxWebSocketClient {
     /**
@@ -192,9 +191,9 @@ public class RxWebSocketClient {
     private HybiParser mParser;
 
     /**
-     * RxJava Emmiter
+     * RxJava Subscriber
      */
-    private Emitter<Event> mEmitter;
+    private Subscriber<? super Event> mSubscriber;
 
     /**
      * Object for mutex
@@ -228,11 +227,11 @@ public class RxWebSocketClient {
         this.mHandlerThread.start();
         this.mHandler = new Handler(mHandlerThread.getLooper());
 
-        return Observable.fromEmitter(new Action1<Emitter<Event>>() {
+        return Observable.create(new Observable.OnSubscribe<Event>() {
             @Override
-            public void call(Emitter<Event> eventEmitter) {
+            public void call(Subscriber<? super Event> subscriber) {
                 try {
-                    mEmitter = eventEmitter;
+                    mSubscriber = subscriber;
                     String secret = createSecret();
                     String scheme = mUri.getScheme();
 
@@ -310,7 +309,7 @@ public class RxWebSocketClient {
                     emitterOnError(e);
                 }
             }
-        }, Emitter.BackpressureMode.BUFFER).doOnUnsubscribe(new Action0() {
+        }).doOnUnsubscribe(new Action0() {
             @Override
             public void call() {
                 RxWebSocketClient.this.disconnect(false);
@@ -509,8 +508,8 @@ public class RxWebSocketClient {
      * Emit onNext to Streaming
      */
     void emitterOnNext(Event event) {
-        if (mEmitter != null) {
-            mEmitter.onNext(event);
+        if (mSubscriber != null) {
+            mSubscriber.onNext(event);
         }
     }
 
@@ -521,8 +520,8 @@ public class RxWebSocketClient {
      */
     void emitterOnError(Throwable e) {
         mIsConnected = false;
-        if (mEmitter != null) {
-            mEmitter.onError(e);
+        if (mSubscriber != null) {
+            mSubscriber.onError(e);
         }
     }
 
@@ -531,8 +530,8 @@ public class RxWebSocketClient {
      */
     void emitterOnCompleted() {
         mIsConnected = false;
-        if (mEmitter != null) {
-            mEmitter.onCompleted();
+        if (mSubscriber != null) {
+            mSubscriber.onCompleted();
         }
     }
 

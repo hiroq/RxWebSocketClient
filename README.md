@@ -98,6 +98,7 @@ You can run sample project with sample WebSocket server which is implemented in 
 
 ```
 cd sample-server
+npm install
 node app.js
 ```
 

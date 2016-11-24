@@ -1,0 +1,11 @@
+{
+  "name": "rxwsc-server",
+  "version": "0.1.0",
+  "description": "Simple echo WebSocket server for RxWebSocketClient sample",
+  "main": "app.js",
+  "dependencies": {
+    "express": "4.14.x",
+    "ws": "1.1.x"
+  },
+  "license": "MIT"
+}
